@@ -51,6 +51,7 @@ router.post("/login", async (req, res) => {
         isAdmin: user.isAdmin,
     }
     , process.env.JWT_KEY, {expiresIn: "7d"});
+    const {password, ...info} = user._doc;
     res.status(200).json({
         data: {...info, token},
         message: "Login thanh cong",
