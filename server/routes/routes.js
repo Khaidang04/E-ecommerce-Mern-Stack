@@ -1,7 +1,10 @@
 const router = require("express").Router();
 const userRoutes = require("./user.route.js");
-const base = "/api/v1";
-router.use(`${base}/users`, userRoutes); // Use backticks (`) for template literal
-module.exports = router;
+const authRoutes = require("./auth.routes.js");
 
-//http://localhost:4000/api/v1/users/get-users
+const base = "/api/v1";
+router.use(`${base}/users`, userRoutes);// http://localhost:4000/api/v1/users/get-users
+router.use(`${base}/auth`, authRoutes); //
+router.use(`${base}/auth`, authRoutes); 
+module.exports = router;
+//http://localhost:4000/api/v1/auth/register
