@@ -1,8 +1,12 @@
 const express = require('express');
 const dbConnect = require('./dbConnect/dbConnection');
+const routes = require('./routes/routes');
 const app = express();
+const userRoutes = require('./routes/user.route.js');
 
 
+// app.use("/", routes);
+app.use("/api/v1/users", userRoutes)
 app.get("/", (req, res) => {
     res.send("My backend is complete");
 })
