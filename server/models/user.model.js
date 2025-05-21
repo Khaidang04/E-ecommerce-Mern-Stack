@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;//
 
 const userModel = new Schema({
+    isAdmin: {
+        type: Boolean,
+        default: false,
+    },
     username: {
         type: String,// ten nguoi dung
         required: true,//bat buoc
@@ -15,10 +19,6 @@ const userModel = new Schema({
     password: {
         type: String,
         required: true,
-    },
-    idAdmin: {
-        type: Boolean,
-        default: false,
     },
     // createAt: Date.now()//
 },
