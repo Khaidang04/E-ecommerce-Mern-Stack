@@ -21,7 +21,7 @@ const register =  async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({
-            message: "User tao that bai",
+            message: "Loi khi tao user",
             error: error,
         })
     }
@@ -33,14 +33,14 @@ const login =  async (req, res) => {
     const user = await User.findOne({email: req.body.email});// tim kiem user theo email
     if (!user) {
         return res.status(404).json({
-            message: "Email khong ton tai",
+            message: "Khong tim thay user",
         })
     }
 
     const comparePassword = await bcrypt.compare(req.body.password, user.password);
     if (!comparePassword){
         return res.status(404).json({
-            message: "Mat khau khong chinh xac",
+            message: "Sai mat khau",
         })
     }
     const token = jwt.sign({
@@ -57,7 +57,7 @@ const login =  async (req, res) => {
     } catch(error){
         console.log(error);
         res.status(200).json({
-            message: "Login Failed",
+            message: "Loi khi login",
             error: error,
         })
     }

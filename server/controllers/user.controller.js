@@ -12,13 +12,13 @@ const updatedUser = async  (req, res) => {
             return res.status(404).json({message: "User not Found!"})// Nếu không tìm thấy người dùng, trả về lỗi 404
         }
         res.status(200).json({
-            message: "User updated successfully",
+            message: "User update thanh cong",// Trả về thông báo thành công
             data : updatedUser,// Trả về người dùng đã cập nhật
         })
     }catch (err) {
         console.log(err)// Nếu có lỗi, in lỗi ra console
         res.status(500).json({
-            message: "User update failed",
+            message: "User update that bai",// Trả về thông báo thất bại
             error: err// Trả về lỗi
         })
     }
@@ -28,12 +28,12 @@ const deleteUser = async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id)// Tìm người dùng theo id và xóa
         res.status(200).json({
-            message: "User xoa thanh cong",
+            message: "User xoa thanh cong",// Trả về thông báo thành công
         })
     }catch (error) {
         console.log(error)
          res.status(500).json({
-            message: "User xoa that bai",
+            message: "User xoa that bai",// Trả về thông báo thất bại
         })
     }
     
