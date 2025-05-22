@@ -59,7 +59,7 @@ const deleteCart = async (req, res) => {
 
 const getUserCartItem = async (req, res) => {
     try {
-        const cartItem = await Cart.findById(req.params.id);
+        const cartItem = await Cart.findById({userId: req.params.id});
         res.status(200).json({
             message: "Lay gio hang thanh cong",
             data: cartItem
