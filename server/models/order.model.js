@@ -8,7 +8,7 @@ const orderModel = new Schema({
         type: String,
         required: true,//bat buoc
     },
-    product: [ // danh sach san pham
+    products: [ // danh sach san pham
         {
             productId: {
                 type: String,

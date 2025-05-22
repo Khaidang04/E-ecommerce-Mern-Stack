@@ -1,3 +1,4 @@
+const { create } = require('../models/cart.model');
 const Order = require('../models/order.model');
 
 const createOrder = async (req, res) => {
@@ -59,7 +60,7 @@ const deleteOrder = async (req, res) => {
 
 const getUserOrder = async (req, res) => {
     try {
-        const Order = await Order.findById({userId: req.params.id});
+        const Order = await Order.findOne({userId: req.params.id});
         res.status(200).json({
             message: "Lay don hang thanh cong",
             data: Order
@@ -88,11 +89,47 @@ const getOrders = async (req, res) => {
     }
 }
 
-
+const getMonthlyIncome = async (req, res) => {
+    try {
+        const date = new Date()// Thay đổi ngày tháng năm ở đây
+        const lastMonth = new Date(date.setMonth(date.getMonth() - 1))//
+        const prevMonth = new Date(lastMonth.setMonth(lastMonth.getMonth() - 1))
+        const startOfYear = new Date(new Date().getFullYear() - 1); 
+        const getMonthlyIncome = await Order.aggregate([
+            {
+                // $match: {createdAt: {$gte: prevMonth}}// Lọc các đơn hàng được tạo trong tháng trước
+                $match: { createdAt: { $gte: startOfYear } }
+            },
+            {
+                $project: {
+                    month: {$month: "$createdAt"},// Lấy tháng của đơn hàng
+                    sales: "$amount"// Lấy số tiền của đơn hàng
+                }
+            },
+            {
+                $group: {
+                    _id: "$month",// Nhóm theo tháng
+                    total: {$sum: "$sales"}// Tính tổng số tiền của các đơn hàng trong tháng
+                }
+            }
+        ])
+        res.status(200).json({
+            message: "Lay thu nhap hang thang thanh cong",
+            data: getMonthlyIncome
+        })
+    }catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: "Loi khi lay thu nhap hang thang",
+            error: error.message
+        })
+    }
+}
 module.exports = {
     createOrder,
     updateOrder,
     deleteOrder,
     getUserOrder,
-    getOrders
+    getOrders,
+    getMonthlyIncome
 }
