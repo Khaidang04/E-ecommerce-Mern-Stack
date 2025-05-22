@@ -11,10 +11,10 @@ const productModel = new Schema({
         type: String,
         required: true,
     },
-    // image: {
-    //     type: String,
-    //     required: true,
-    // },
+    image: {
+        type: String,
+        required: true,
+    },
     categories: {
         type: Array,//
         default: [],
