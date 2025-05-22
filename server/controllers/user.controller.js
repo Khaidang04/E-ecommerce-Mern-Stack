@@ -64,6 +64,20 @@ const getAdmin = async (req, res) => {
 }
 
 const getAllUsers = async (req, res) => {
+    const query = req.query.latest// Lấy thông tin người dùng;
+    try {
+        const users = query ? await User.find().sort({_id: -1}).limit(1) : await User.find();// Tìm người dùng theo id (sort theo id giảm dần và giới hạn 1 người dùng)
+        res.status(200).json({
+            message: "User duoc tim thay thanh cong",
+            data: users// Trả về người dùng đã xóa
+        })
+    }catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: "User duoc tim thay that bai",
+            error: error// Trả về lỗi
+        })
+    }
     try{
         const users = await User.find()// Tìm người dùng theo id
 
@@ -79,6 +93,34 @@ const getAllUsers = async (req, res) => {
         })
     }
 }
+//thong ke
+const getUserStats = async (req, res) => {
+    try {
+        const date = new Date();
+        const lastyear = new Data(date.setFullYear(date.getFullYear() -1))
+        const userStats = await User.aggregate([
+            {
+                $match: { createdAt: { $gte: lastyear } },// Tìm người dùng theo id
+            },
+            {
+                $project: {
+                    month: { $month: "$createdAt" },// Lấy tháng của ngày tạo
+                },
+            },
+            {
+                $group: {
+                    _id: "$month",// Nhóm theo tháng
+                    total: { $sum: 1 },// Tổng số người dùng
+                },
+            }
+        ])
+    }catch (error) {
+        console.log(errror);
+        res.status(500).json({
+            message: "Loi khi lay thong ke nguoi dung",
+            error: error.message
+        }) 
+    }
+}
 
-
-module.exports = { updatedUser, deleteUser, getAdmin, getAllUsers };
+module.exports = { updatedUser, deleteUser, getAdmin, getAllUsers,getUserStats}; 
