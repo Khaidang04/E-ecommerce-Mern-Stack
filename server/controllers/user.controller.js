@@ -97,10 +97,10 @@ const getAllUsers = async (req, res) => {
 const getUserStats = async (req, res) => {
     try {
         const date = new Date();
-        const lastyear = new Data(date.setFullYear(date.getFullYear() -1))
+        const lastYear = new Date(date.setFullYear(date.getFullYear() -1))
         const userStats = await User.aggregate([
             {
-                $match: { createdAt: { $gte: lastyear } },// Tìm người dùng theo id
+                $match: { createdAt: { $gte: lastYear } },// Tìm người dùng theo id
             },
             {
                 $project: {
@@ -114,8 +114,12 @@ const getUserStats = async (req, res) => {
                 },
             }
         ])
+        res.status(200).json({
+            message: "Thong ke nguoi dung thanh cong",
+            data: userStats// Trả về người dùng đã xóa
+        })
     }catch (error) {
-        console.log(errror);
+        console.log(error);
         res.status(500).json({
             message: "Loi khi lay thong ke nguoi dung",
             error: error.message
@@ -123,4 +127,4 @@ const getUserStats = async (req, res) => {
     }
 }
 
-module.exports = { updatedUser, deleteUser, getAdmin, getAllUsers,getUserStats}; 
+module.exports = { updatedUser, deleteUser, getAdmin, getAllUsers, getUserStats}; 
