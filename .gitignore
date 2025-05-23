@@ -1,15 +1,26 @@
-# MacOS
+# Hệ điều hành
 .DS_Store
 
-# Node modules
-node_modules/
+# Node.js modules
+**/node_modules/
 
-# Env files
-.env
+# Biến môi trường
+**/.env
 
-# Build output
-build/
+# Log files
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+client/build/
+server/dist/
 dist/
+build/
 
-# IDE
+# IDE/Editor
 .vscode/
+.idea/
+
+# Test coverage
+coverage/
