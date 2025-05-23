@@ -1,6 +1,12 @@
-const { createCart, updateCart, deleteCart, getUserCartItem, getCartItems } = require("../controllers/cart.controller");
+const {
+  createCart,
+  updateCart,
+  deleteCart,
+  getUserCartItem,
+  getCartItems,
+} = require("../controllers/cart.controller");
 const { verifyToken } = require("../middleware/verifyToken");
-const router = require('express').Router();
+const router = require("express").Router();
 
 router.post("/", verifyToken, createCart);
 router.put("/:id", verifyToken, updateCart);
