@@ -1,74 +1,66 @@
-//Xác thực người dùng
-
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
 const User = require("../models/user.model");
 
 const register = async (req, res) => {
   try {
-    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
     const newUser = new User({
       username: req.body.username,
       email: req.body.email,
-      password: hashedPassword,
+      password: req.body.password, // Không mã hóa ở đây
     });
 
-    await newUser.save();
+    await newUser.save(); // middleware pre('save') sẽ tự mã hóa
 
     const { password, ...userData } = newUser._doc;
     res.status(200).json({
-      message: "Tao tai khoan thanh cong",
+      message: "Tạo tài khoản thành công",
       data: userData,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
-      message: "Loi khi tao tai khoan",
-      error: error,
+      message: "Lỗi khi tạo tài khoản",
+      error,
     });
   }
 };
 
 const login = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email }); // tim kiem user theo email
+    const user = await User.findOne({ email: req.body.email });
     if (!user) {
-      return res.status(404).json({
-        message: "Khong tim thay tai khoan",
-      });
+      return res.status(404).json({ message: "Không tìm thấy tài khoản" });
     }
 
-    const comparePassword = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
-    if (!comparePassword) {
-      return res.status(404).json({
-        message: "Mat khau khong chinh xac",
-      });
+    const isMatch = await user.matchPassword(req.body.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Mật khẩu không chính xác" });
     }
+
     const token = jwt.sign(
       {
-        userId: user._id, // id cua user
+        userId: user._id,
         username: user.username,
         isAdmin: user.isAdmin,
       },
       process.env.JWT_KEY,
       { expiresIn: "5d" }
     );
+
     const { password, ...userData } = user._doc;
     res.status(200).json({
-      message: "Dang nhap thanh cong",
+      message: "Đăng nhập thành công",
       data: { ...userData, token },
     });
   } catch (error) {
-    console.log(error);
-    res.status(200).json({
-      message: "Loi khi login",
-      error: error,
+    console.error(error);
+    res.status(500).json({
+      message: "Lỗi khi đăng nhập",
+      error,
     });
   }
 };
+
 module.exports = {
   register,
   login,
