@@ -1,0 +1,112 @@
+# =====================================
+# OS-specific files
+# =====================================
+.DS_Store
+Thumbs.db
+
+# =====================================
+# Logs
+# =====================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =====================================
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =====================================
+# Dependency directories
+node_modules/
+bower_components/
+
+# =====================================
+# Build outputs
+dist/
+build/
+out/
+public/build
+storybook-static/
+coverage/
+.nyc_output/
+
+# =====================================
+# Static site generators / frameworks
+.next/
+.nuxt/
+.cache/
+.svelte-kit/
+.vite/
+
+# =====================================
+# Environment variable files
+.env
+.env.*.local
+.env.local
+.env.production
+.env.development
+.env.test
+
+# =====================================
+# IDEs and editor settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# =====================================
+# Optional cache files
+.eslintcache
+.parcel-cache/
+.turbo/
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# =====================================
+# Python (if ever used)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+env/
+venv/
+*.egg-info/
+*.sqlite3
+
+
+server/.env
+
+# =====================================
+# Java (if ever used)
+target/
+bin/
+out/
+*.class
+.gradle/
+.mvn/
+.project
+.classpath
+
+# =====================================
+# Misc
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Ignore uploads (optional, if storing user files)
+uploads/
+public/uploads/
+
+# Ignore local database files (optional)
+*.db
+*.sqlite
