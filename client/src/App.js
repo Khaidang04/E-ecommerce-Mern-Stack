@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Routes,
   Route,
@@ -6,11 +6,18 @@ import {
   useNavigate,
   Navigate,
 } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
 
 // Configure Axios defaults
 axios.defaults.baseURL = "http://localhost:4000/api/v1";
 axios.defaults.withCredentials = true;
+
+const isStrongPassword = (password) => {
+  const regex = /^[a-zA-Z0-9@#$!%*?&]{6,}$/;
+  return regex.test(password);
+};
 
 const LoginPage = ({ setUser, message, setMessage }) => {
   const navigate = useNavigate();
@@ -18,21 +25,35 @@ const LoginPage = ({ setUser, message, setMessage }) => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
-    email: "",
-    password: "",
+    email: localStorage.getItem("savedEmail") || "",
+    password: localStorage.getItem("savedPassword") || "",
     avatar: null,
   });
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(
+    localStorage.getItem("rememberMe") === "true"
+  );
 
   const handleChange = (e) => {
-    if (e.target.name === "avatar") {
-      setFormData({ ...formData, avatar: e.target.files[0] });
+    const { name, value, files } = e.target;
+    if (name === "avatar") {
+      setFormData({ ...formData, avatar: files[0] });
     } else {
-      setFormData({ ...formData, [e.target.name]: e.target.value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
+  };
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token);
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (!isStrongPassword(formData.password)) {
+      setMessage("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("username", formData.username);
@@ -48,36 +69,57 @@ const LoginPage = ({ setUser, message, setMessage }) => {
       setMessage(data.msg);
       setIsRegister(false);
       setFormData({ username: "", email: "", password: "", avatar: null });
+      setCaptchaToken(null);
     } catch (error) {
-      setMessage(error.response?.data?.msg || "Đã có lỗi xảy ra");
+      setMessage(error.response?.data?.msg || "Có lỗi xảy ra");
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setMessage("Vui lòng xác thực CAPTCHA");
+      return;
+    }
     try {
       const { data } = await axios.post("/auth/login", {
         email: formData.email,
         password: formData.password,
+        captchaToken,
       });
       setUser(data.data);
+      if (rememberMe) {
+        localStorage.setItem("savedEmail", formData.email);
+        localStorage.setItem("savedPassword", formData.password);
+        localStorage.setItem("rememberMe", "true");
+      } else {
+        localStorage.removeItem("savedEmail");
+        localStorage.removeItem("savedPassword");
+        localStorage.removeItem("rememberMe");
+      }
       setMessage("Đăng nhập thành công!");
       navigate("/home");
     } catch (error) {
-      setMessage(error.response?.data?.msg || "Đã có lỗi xảy ra");
+      setMessage(error.response?.data?.msg || "Có lỗi đăng nhập");
     }
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    if (!captchaToken) {
+      setMessage("Vui lòng xác thực CAPTCHA");
+      return;
+    }
     try {
       const { data } = await axios.post("/auth/forgot-password", {
         email: formData.email,
+        captchaToken,
       });
       setMessage(data.msg);
       setIsForgotPassword(false);
+      setCaptchaToken(null);
     } catch (error) {
-      setMessage(error.response?.data?.msg || "Đã có lỗi xảy ra");
+      setMessage(error.response?.data?.msg || "Có lỗi xảy ra");
     }
   };
 
@@ -108,6 +150,8 @@ const LoginPage = ({ setUser, message, setMessage }) => {
             ? "multipart/form-data"
             : "application/x-www-form-urlencoded"
         }
+        autoComplete="on"
+        id="login-form"
       >
         {isRegister && (
           <>
@@ -120,6 +164,7 @@ const LoginPage = ({ setUser, message, setMessage }) => {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
                 required
+                autoComplete="username"
               />
             </div>
             <div className="mb-4">
@@ -143,21 +188,57 @@ const LoginPage = ({ setUser, message, setMessage }) => {
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
             required
+            autoComplete="email"
+            id="email"
           />
         </div>
         {!isForgotPassword && (
-          <div className="mb-6">
+          <div className="mb-6 relative">
             <label className="block text-gray-700">Mật khẩu</label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleChange}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
               required
+              autoComplete="current-password"
+              id="password"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-gray-600"
+            >
+              {showPassword ? (
+                <EyeSlashIcon className="h-5 w-5" />
+              ) : (
+                <EyeIcon className="h-5 w-5" />
+              )}
+            </button>
           </div>
         )}
+        {!isRegister && !isForgotPassword && (
+          <div className="mb-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="mr-2"
+              />
+              Ghi nhớ tôi
+            </label>
+          </div>
+        )}
+        {(!isRegister && !isForgotPassword) || isForgotPassword ? (
+          <div className="mb-6">
+            <ReCAPTCHA
+              sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+              onChange={handleCaptchaChange}
+            />
+          </div>
+        ) : null}
         <button
           type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
@@ -175,6 +256,7 @@ const LoginPage = ({ setUser, message, setMessage }) => {
             setIsRegister(!isRegister);
             setIsForgotPassword(false);
             setMessage("");
+            setCaptchaToken(null);
           }}
           className="w-1/2 mr-2 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition duration-200"
         >
@@ -185,6 +267,7 @@ const LoginPage = ({ setUser, message, setMessage }) => {
             onClick={() => {
               setIsForgotPassword(true);
               setMessage("");
+              setCaptchaToken(null);
             }}
             className="w-1/2 ml-2 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition duration-200"
           >
@@ -207,8 +290,10 @@ const ResetPasswordPage = ({ setMessage }) => {
   const { token } = useParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isValidToken, setIsValidToken] = useState(null);
   const [error, setError] = useState(null);
+  const [message, setLocalMessage] = useState("");
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -226,6 +311,7 @@ const ResetPasswordPage = ({ setMessage }) => {
         const errorMsg =
           error.response?.data?.msg || "Liên kết không hợp lệ hoặc đã hết hạn";
         setError(errorMsg);
+        setLocalMessage(errorMsg);
         setMessage(errorMsg);
         setTimeout(() => navigate("/login"), 5000);
       }
@@ -235,14 +321,23 @@ const ResetPasswordPage = ({ setMessage }) => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    if (!isStrongPassword(password)) {
+      const errorMsg = "Mật khẩu phải có ít nhất 6 ký tự.";
+      setLocalMessage(errorMsg);
+      setMessage(errorMsg);
+      return;
+    }
     try {
       const { data } = await axios.post(`/auth/reset-password/${token}`, {
         password,
       });
+      setLocalMessage(data.msg);
       setMessage(data.msg);
       navigate("/login");
     } catch (error) {
-      setMessage(error.response?.data?.msg || "Đã có lỗi xảy ra");
+      const errorMsg = error.response?.data?.msg || "Có lỗi xảy ra";
+      setLocalMessage(errorMsg);
+      setMessage(errorMsg);
     }
   };
 
@@ -265,15 +360,27 @@ const ResetPasswordPage = ({ setMessage }) => {
         Đặt lại Mật khẩu - EcommerceMern
       </h2>
       <form onSubmit={handleResetPassword}>
-        <div className="mb-6">
+        <div className="mb-6 relative">
           <label className="block text-gray-700">Mật khẩu mới</label>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
             required
+            autoComplete="new-password"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-9 text-gray-600"
+          >
+            {showPassword ? (
+              <EyeSlashIcon className="h-5 w-5" />
+            ) : (
+              <EyeIcon className="h-5 w-5" />
+            )}
+          </button>
         </div>
         <button
           type="submit"
@@ -282,29 +389,58 @@ const ResetPasswordPage = ({ setMessage }) => {
           Đặt lại Mật khẩu
         </button>
       </form>
+      {message && <p className="mt-4 text-center text-green-500">{message}</p>}
     </div>
   );
 };
 
-const HomePage = ({ user, setUser, message, setMessage }) => {
+const HomePage = ({ user, setUser }) => {
   const navigate = useNavigate();
+  const [message, setMessage] = useState("");
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await axios.post("/auth/logout");
       setUser(null);
+      localStorage.removeItem("savedEmail");
+      localStorage.removeItem("savedPassword");
+      localStorage.removeItem("rememberMe");
       document.cookie =
         "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-      setMessage("Đã đăng xuất thành công");
+      setMessage("Đăng xuất thành công");
       navigate("/login");
     } catch (error) {
-      setMessage("Đã có lỗi khi đăng xuất");
+      setMessage("Có lỗi khi đăng xuất");
+      navigate("/login");
     }
-  };
+  }, [navigate, setUser]);
+
+  // Auto-logout after 30 seconds of inactivity
+  useEffect(() => {
+    let timeoutId;
+
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        handleLogout();
+      }, 30000); // 30 seconds
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll"];
+    events.forEach((event) => window.addEventListener(event, resetTimeout));
+
+    resetTimeout(); // Start the timer
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) =>
+        window.removeEventListener(event, resetTimeout)
+      );
+    };
+  }, [handleLogout]);
 
   if (!user) {
-    navigate("/login");
-    return null;
+    return <Navigate to="/login" />;
   }
 
   return (
@@ -329,7 +465,7 @@ const HomePage = ({ user, setUser, message, setMessage }) => {
       </p>
       <button
         onClick={handleLogout}
-        className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition duration-200"
+        className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
       >
         Đăng xuất
       </button>
@@ -349,7 +485,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <h1 className="text-center text-red-500">
-          Đã có lỗi xảy ra. Vui lòng thử lại.
+          Có lỗi xảy ra. Vui lòng thử lại.
         </h1>
       );
     }
@@ -381,12 +517,18 @@ const App = () => {
           }
         } catch (refreshError) {
           setUser(null);
+          localStorage.removeItem("savedEmail");
+          localStorage.removeItem("savedPassword");
+          localStorage.removeItem("rememberMe");
           document.cookie =
             "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
           setMessage("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         }
       } else {
         setUser(null);
+        localStorage.removeItem("savedEmail");
+        localStorage.removeItem("savedPassword");
+        localStorage.removeItem("rememberMe");
         document.cookie =
           "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
         setMessage(
@@ -407,7 +549,6 @@ const App = () => {
       setLoading(false);
       navigate("/login");
     } else {
-      // Luôn gọi API để lấy thông tin người dùng mới nhất từ server
       fetchUser();
     }
   }, [fetchUser, navigate]);
@@ -436,14 +577,7 @@ const App = () => {
           />
           <Route
             path="/home"
-            element={
-              <HomePage
-                user={user}
-                setUser={setUser}
-                message={message}
-                setMessage={setMessage}
-              />
-            }
+            element={<HomePage user={user} setUser={setUser} />}
           />
           <Route
             path="/reset-password/:token"

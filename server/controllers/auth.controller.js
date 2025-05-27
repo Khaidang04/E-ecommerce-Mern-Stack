@@ -1,12 +1,43 @@
+const axios = require("axios");
 const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { sendEmail } = require("../utils/email");
 
-// Đăng ký
+// Hàm xác thực reCAPTCHA v2
+const verifyCaptcha = async (captchaToken) => {
+  try {
+    const response = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify`,
+      null,
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY,
+          response: captchaToken,
+        },
+      }
+    );
+    return response.data.success;
+  } catch (error) {
+    throw new Error("Xác thực CAPTCHA thất bại");
+  }
+};
+
+// Hàm kiểm tra độ mạnh mật khẩu
+const isStrongPassword = (password) => {
+  const regex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+  return regex.test(password);
+};
+
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
   try {
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        msg: "Mật khẩu phải có ít nhất 6 ký tự, bao gồm ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&)",
+      });
+    }
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: "Email đã tồn tại" });
 
@@ -30,8 +61,12 @@ exports.register = async (req, res) => {
 
 // Đăng nhập
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, captchaToken } = req.body;
   try {
+    const isCaptchaValid = await verifyCaptcha(captchaToken);
+    if (!isCaptchaValid) {
+      return res.status(400).json({ msg: "Xác thực CAPTCHA thất bại" });
+    }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "Email không tồn tại" });
 
@@ -57,14 +92,14 @@ exports.login = async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       maxAge: 15 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       path: "/",
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       path: "/",
     });
@@ -73,6 +108,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Đăng nhập thành công",
       data: userData,
+      accessToken, // Trả về accessToken
     });
   } catch (err) {
     console.error("Lỗi khi đăng nhập:", err);
@@ -104,7 +140,7 @@ exports.refreshToken = async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       maxAge: 15 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       path: "/",
     });
@@ -118,8 +154,13 @@ exports.refreshToken = async (req, res) => {
 
 // Quên mật khẩu
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const { email, captchaToken } = req.body;
   try {
+    const isCaptchaValid = await verifyCaptcha(captchaToken);
+    if (!isCaptchaValid) {
+      return res.status(400).json({ msg: "Xác thực CAPTCHA thất bại" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ msg: "Email không tồn tại" });
 
@@ -165,6 +206,12 @@ exports.verifyResetPasswordToken = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { password } = req.body;
   try {
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        msg: "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt",
+      });
+    }
+
     const user = await User.findOne({
       resetPasswordToken: req.params.token,
       resetPasswordExpires: { $gt: Date.now() },

@@ -24,12 +24,22 @@ app.use(
   })
 );
 
+// Define rate limiter before using it
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit 100 requests per IP
   message: "Quá nhiều yêu cầu từ IP này, vui lòng thử lại sau 15 phút.",
 });
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit 5 login attempts
+  message: "Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau 15 phút.",
+});
+
+// Apply rate limiters
 app.use(limiter);
+app.use("/api/v1/auth/login", loginLimiter);
 
 app.use(morgan("combined"));
 app.use(express.json());
