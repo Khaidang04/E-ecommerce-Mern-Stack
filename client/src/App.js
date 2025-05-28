@@ -1,503 +1,33 @@
-import React, { useState, useCallback, useEffect } from "react";
-import {
-  Routes,
-  Route,
-  useParams,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
-import ReCAPTCHA from "react-google-recaptcha";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import React, { useState, useCallback, useEffect, useContext } from "react";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import LoginPage from "./components/LoginPage";
+import ResetPasswordPage from "./components/ResetPasswordPage";
+import HomePage from "./components/HomePage";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ColorPicker from "./components/ColorPicker";
+import Ballpit from "./components/Ballpit";
+import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
+import { SunIcon, MoonIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 // Configure Axios defaults
 axios.defaults.baseURL = "http://localhost:4000/api/v1";
 axios.defaults.withCredentials = true;
+axios.defaults.timeout = 300000;
 
-const isStrongPassword = (password) => {
-  const regex = /^[a-zA-Z0-9@#$!%*?&]{6,}$/;
-  return regex.test(password);
-};
-
-const LoginPage = ({ setUser, message, setMessage }) => {
+const AppContent = ({
+  user,
+  setUser,
+  message,
+  setMessage,
+  loading,
+  setLoading,
+}) => {
   const navigate = useNavigate();
-  const [isRegister, setIsRegister] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    username: "",
-    email: localStorage.getItem("savedEmail") || "",
-    password: localStorage.getItem("savedPassword") || "",
-    avatar: null,
-  });
-  const [captchaToken, setCaptchaToken] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(
-    localStorage.getItem("rememberMe") === "true"
-  );
-
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "avatar") {
-      setFormData({ ...formData, avatar: files[0] });
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleCaptchaChange = (token) => {
-    setCaptchaToken(token);
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!isStrongPassword(formData.password)) {
-      setMessage("Mật khẩu phải có ít nhất 6 ký tự.");
-      return;
-    }
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("username", formData.username);
-      formDataToSend.append("email", formData.email);
-      formDataToSend.append("password", formData.password);
-      if (formData.avatar) {
-        formDataToSend.append("avatar", formData.avatar);
-      }
-
-      const { data } = await axios.post("/auth/register", formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMessage(data.msg);
-      setIsRegister(false);
-      setFormData({ username: "", email: "", password: "", avatar: null });
-      setCaptchaToken(null);
-    } catch (error) {
-      setMessage(error.response?.data?.msg || "Có lỗi xảy ra");
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!captchaToken) {
-      setMessage("Vui lòng xác thực CAPTCHA");
-      return;
-    }
-    try {
-      const { data } = await axios.post("/auth/login", {
-        email: formData.email,
-        password: formData.password,
-        captchaToken,
-      });
-      setUser(data.data);
-      if (rememberMe) {
-        localStorage.setItem("savedEmail", formData.email);
-        localStorage.setItem("savedPassword", formData.password);
-        localStorage.setItem("rememberMe", "true");
-      } else {
-        localStorage.removeItem("savedEmail");
-        localStorage.removeItem("savedPassword");
-        localStorage.removeItem("rememberMe");
-      }
-      setMessage("Đăng nhập thành công!");
-      navigate("/home");
-    } catch (error) {
-      setMessage(error.response?.data?.msg || "Có lỗi đăng nhập");
-    }
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    if (!captchaToken) {
-      setMessage("Vui lòng xác thực CAPTCHA");
-      return;
-    }
-    try {
-      const { data } = await axios.post("/auth/forgot-password", {
-        email: formData.email,
-        captchaToken,
-      });
-      setMessage(data.msg);
-      setIsForgotPassword(false);
-      setCaptchaToken(null);
-    } catch (error) {
-      setMessage(error.response?.data?.msg || "Có lỗi xảy ra");
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:4000/api/v1/auth/google";
-  };
-
-  return (
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">
-        {isRegister
-          ? "Đăng ký"
-          : isForgotPassword
-          ? "Quên mật khẩu"
-          : "Đăng nhập"}{" "}
-        - EcommerceMern
-      </h2>
-      <form
-        onSubmit={
-          isRegister
-            ? handleRegister
-            : isForgotPassword
-            ? handleForgotPassword
-            : handleLogin
-        }
-        encType={
-          isRegister
-            ? "multipart/form-data"
-            : "application/x-www-form-urlencoded"
-        }
-        autoComplete="on"
-        id="login-form"
-      >
-        {isRegister && (
-          <>
-            <div className="mb-4">
-              <label className="block text-gray-700">Tên người dùng</label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-                required
-                autoComplete="username"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Ảnh đại diện</label>
-              <input
-                type="file"
-                name="avatar"
-                onChange={handleChange}
-                accept="image/*"
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-              />
-            </div>
-          </>
-        )}
-        <div className="mb-4">
-          <label className="block text-gray-700">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-            required
-            autoComplete="email"
-            id="email"
-          />
-        </div>
-        {!isForgotPassword && (
-          <div className="mb-6 relative">
-            <label className="block text-gray-700">Mật khẩu</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-              required
-              autoComplete="current-password"
-              id="password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9 text-gray-600"
-            >
-              {showPassword ? (
-                <EyeSlashIcon className="h-5 w-5" />
-              ) : (
-                <EyeIcon className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        )}
-        {!isRegister && !isForgotPassword && (
-          <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="mr-2"
-              />
-              Ghi nhớ tôi
-            </label>
-          </div>
-        )}
-        {(!isRegister && !isForgotPassword) || isForgotPassword ? (
-          <div className="mb-6">
-            <ReCAPTCHA
-              sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
-              onChange={handleCaptchaChange}
-            />
-          </div>
-        ) : null}
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          {isRegister
-            ? "Đăng ký"
-            : isForgotPassword
-            ? "Gửi liên kết đặt lại"
-            : "Đăng nhập"}
-        </button>
-      </form>
-      <div className="mt-4 flex justify-between">
-        <button
-          onClick={() => {
-            setIsRegister(!isRegister);
-            setIsForgotPassword(false);
-            setMessage("");
-            setCaptchaToken(null);
-          }}
-          className="w-1/2 mr-2 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition duration-200"
-        >
-          {isRegister ? "Chuyển sang Đăng nhập" : "Chuyển sang Đăng ký"}
-        </button>
-        {!isRegister && (
-          <button
-            onClick={() => {
-              setIsForgotPassword(true);
-              setMessage("");
-              setCaptchaToken(null);
-            }}
-            className="w-1/2 ml-2 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition duration-200"
-          >
-            Quên mật khẩu
-          </button>
-        )}
-      </div>
-      <button
-        onClick={handleGoogleLogin}
-        className="w-full mt-4 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition duration-200"
-      >
-        Đăng nhập với Google
-      </button>
-      {message && <p className="mt-4 text-center text-green-500">{message}</p>}
-    </div>
-  );
-};
-
-const ResetPasswordPage = ({ setMessage }) => {
-  const { token } = useParams();
-  const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isValidToken, setIsValidToken] = useState(null);
-  const [error, setError] = useState(null);
-  const [message, setLocalMessage] = useState("");
-
-  useEffect(() => {
-    const verifyToken = async () => {
-      try {
-        const response = await axios.get(`/auth/reset-password/${token}`, {
-          headers: { "Cache-Control": "no-cache" },
-        });
-        if (response.status === 200) {
-          setIsValidToken(true);
-        } else {
-          throw new Error("Token verification failed");
-        }
-      } catch (error) {
-        setIsValidToken(false);
-        const errorMsg =
-          error.response?.data?.msg || "Liên kết không hợp lệ hoặc đã hết hạn";
-        setError(errorMsg);
-        setLocalMessage(errorMsg);
-        setMessage(errorMsg);
-        setTimeout(() => navigate("/login"), 5000);
-      }
-    };
-    verifyToken();
-  }, [token, navigate, setMessage]);
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (!isStrongPassword(password)) {
-      const errorMsg = "Mật khẩu phải có ít nhất 6 ký tự.";
-      setLocalMessage(errorMsg);
-      setMessage(errorMsg);
-      return;
-    }
-    try {
-      const { data } = await axios.post(`/auth/reset-password/${token}`, {
-        password,
-      });
-      setLocalMessage(data.msg);
-      setMessage(data.msg);
-      navigate("/login");
-    } catch (error) {
-      const errorMsg = error.response?.data?.msg || "Có lỗi xảy ra";
-      setLocalMessage(errorMsg);
-      setMessage(errorMsg);
-    }
-  };
-
-  if (isValidToken === null) {
-    return <div className="text-center">Đang kiểm tra liên kết...</div>;
-  }
-
-  if (!isValidToken) {
-    return (
-      <div className="text-center text-red-500 p-8">
-        <p>{error}</p>
-        <p>Bạn sẽ được chuyển hướng về trang đăng nhập sau 5 giây...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">
-        Đặt lại Mật khẩu - EcommerceMern
-      </h2>
-      <form onSubmit={handleResetPassword}>
-        <div className="mb-6 relative">
-          <label className="block text-gray-700">Mật khẩu mới</label>
-          <input
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-            required
-            autoComplete="new-password"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-gray-600"
-          >
-            {showPassword ? (
-              <EyeSlashIcon className="h-5 w-5" />
-            ) : (
-              <EyeIcon className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-        >
-          Đặt lại Mật khẩu
-        </button>
-      </form>
-      {message && <p className="mt-4 text-center text-green-500">{message}</p>}
-    </div>
-  );
-};
-
-const HomePage = ({ user, setUser }) => {
-  const navigate = useNavigate();
-  const [message, setMessage] = useState("");
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await axios.post("/auth/logout");
-      setUser(null);
-      localStorage.removeItem("savedEmail");
-      localStorage.removeItem("savedPassword");
-      localStorage.removeItem("rememberMe");
-      document.cookie =
-        "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-      setMessage("Đăng xuất thành công");
-      navigate("/login");
-    } catch (error) {
-      setMessage("Có lỗi khi đăng xuất");
-      navigate("/login");
-    }
-  }, [navigate, setUser]);
-
-  // Auto-logout after 30 seconds of inactivity
-  useEffect(() => {
-    let timeoutId;
-
-    const resetTimeout = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        handleLogout();
-      }, 30000); // 30 seconds
-    };
-
-    const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((event) => window.addEventListener(event, resetTimeout));
-
-    resetTimeout(); // Start the timer
-
-    return () => {
-      clearTimeout(timeoutId);
-      events.forEach((event) =>
-        window.removeEventListener(event, resetTimeout)
-      );
-    };
-  }, [handleLogout]);
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  return (
-    <div className="text-center">
-      <h2 className="text-2xl font-bold mb-4">Xin chào, {user.username}!</h2>
-      {user.avatar ? (
-        <img
-          src={user.avatar}
-          alt="Avatar"
-          className="w-24 h-24 rounded-full mx-auto mb-4"
-        />
-      ) : (
-        <p className="mb-4 text-gray-500">Không có ảnh đại diện</p>
-      )}
-      <p className="mb-2">Email: {user.email}</p>
-      <p className="mb-4">Quyền quản trị: {user.isAdmin ? "Có" : "Không"}</p>
-      <p className="mb-4">
-        Ngày tạo tài khoản: {new Date(user.createdAt).toLocaleString()}
-      </p>
-      <p className="mb-4">
-        Xác thực: {user.isVerified ? "Đã xác thực" : "Chưa xác thực"}
-      </p>
-      <button
-        onClick={handleLogout}
-        className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-      >
-        Đăng xuất
-      </button>
-      {message && <p className="mt-4 text-center text-green-500">{message}</p>}
-    </div>
-  );
-};
-
-class ErrorBoundary extends React.Component {
-  state = { hasError: false };
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <h1 className="text-center text-red-500">
-          Có lỗi xảy ra. Vui lòng thử lại.
-        </h1>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-const App = () => {
-  const [message, setMessage] = useState("");
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, changeMode, applyPreset, lightColors, darkColors } = useContext(ThemeContext);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(null);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -517,18 +47,12 @@ const App = () => {
           }
         } catch (refreshError) {
           setUser(null);
-          localStorage.removeItem("savedEmail");
-          localStorage.removeItem("savedPassword");
-          localStorage.removeItem("rememberMe");
           document.cookie =
             "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
           setMessage("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         }
       } else {
         setUser(null);
-        localStorage.removeItem("savedEmail");
-        localStorage.removeItem("savedPassword");
-        localStorage.removeItem("rememberMe");
         document.cookie =
           "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
         setMessage(
@@ -538,55 +62,511 @@ const App = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setUser, setMessage, setLoading]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get("error");
 
+    const isAuthPage = location.pathname === "/login" || location.pathname.startsWith("/reset-password/");
+    if (isAuthPage) {
+      setLoading(false);
+      return;
+    }
+
     if (error === "auth_failed") {
       setMessage("Đăng nhập Google thất bại, vui lòng thử lại");
       setLoading(false);
-      navigate("/login");
+      navigate("/login", { replace: true });
     } else {
       fetchUser();
     }
-  }, [fetchUser, navigate]);
+  }, [fetchUser, navigate, setMessage, setLoading, location.pathname]);
+
+  const getThemeClasses = () => {
+    if (theme === "light") return "text-gray-900";
+    if (theme === "dark") return "text-gray-100";
+    return "bg-afternoon text-afternoon-text";
+  };
+
+  const getBackgroundClasses = () => {
+    if (theme === "light") {
+      return lightColors.background === "#F9FAFB"
+        ? "bg-bright-white"
+        : lightColors.background === "#FDF7E4"
+        ? "bg-soft-cream"
+        : lightColors.background === "#E0F2FE"
+        ? "bg-cool-blue"
+        : lightColors.background === "#FFE4E6"
+        ? "bg-rose-pink"
+        : lightColors.background === "#ECFDF5"
+        ? "bg-emerald-green"
+        : lightColors.background === "#F3E8FF"
+        ? "bg-lavender-mist"
+        : lightColors.background === "#FFEDD5"
+        ? "bg-sunset-glow"
+        : lightColors.background === "#E6FFFA"
+        ? "bg-mint-breeze"
+        : lightColors.background === "#FFEBE6"
+        ? "bg-peach-blossom"
+        : lightColors.background === "#E0F7FA"
+        ? "bg-sky-serenity"
+        : "bg-bright-white";
+    }
+    if (theme === "dark") {
+      return darkColors.background === "#1F2937"
+        ? "bg-deep-night"
+        : darkColors.background === "#0F172A"
+        ? "bg-midnight-blue"
+        : darkColors.background === "#2D1B4E"
+        ? "bg-twilight-purple"
+        : darkColors.background === "#112D4E"
+        ? "bg-ocean-night"
+        : darkColors.background === "#2F3640"
+        ? "bg-cosmic-gray"
+        : darkColors.background === "#1E1B4B"
+        ? "bg-starry-indigo"
+        : darkColors.background === "#2D1616"
+        ? "bg-crimson-dusk"
+        : darkColors.background === "#1A2E2A"
+        ? "bg-forest-shadow"
+        : darkColors.background === "#2C1A4A"
+        ? "bg-amethyst-night"
+        : darkColors.background === "#1E293B"
+        ? "bg-slate-abyss"
+        : "bg-deep-night";
+    }
+    return "bg-afternoon";
+  };
+
+  const getSecondaryThemeClasses = () => {
+    if (theme === "light") return "bg-blue-500 hover:bg-blue-600 text-white";
+    if (theme === "dark") return "bg-blue-600 hover:bg-blue-700 text-white";
+    return "bg-yellow-600 hover:bg-yellow-700 text-white";
+  };
+
+  const getThemeToggleClasses = () => {
+    if (theme === "light")
+      return "bg-blue-600 text-white hover:bg-blue-700 shadow-lg";
+    if (theme === "dark")
+      return "bg-gray-700 text-white hover:bg-gray-600 backdrop-blur-md bg-opacity-80 shadow-lg";
+    return "bg-yellow-700 text-white hover:bg-yellow-800 backdrop-blur-md bg-opacity-80 shadow-lg";
+  };
+
+  const getTextStyles = () => {
+    if (theme === "light") return { color: lightColors.textSecondary };
+    if (theme === "dark") return { color: darkColors.textSecondary };
+    return { color: "#6B7280" };
+  };
+
+  const handleModeSelect = (newMode) => {
+    if (newMode === "light" || newMode === "dark") {
+      setShowColorPicker(newMode);
+    } else {
+      changeMode(newMode);
+    }
+    setShowModeMenu(false);
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        Đang tải...
+      <div
+        className={`flex items-center justify-center min-h-screen ${getBackgroundClasses()} ${getThemeClasses()}`}
+      >
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Đang tải...</h2>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (message && message.includes("hết hạn") && !location.pathname.startsWith("/login") && !location.pathname.startsWith("/reset-password/")) {
+    return (
+      <div
+        className={`flex items-center justify-center min-h-screen ${getBackgroundClasses()} ${getThemeClasses()}`}
+      >
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Đã xảy ra lỗi</h2>
+          <p className="mb-4">{message}</p>
+          <button
+            onClick={() => {
+              setMessage("");
+              fetchUser();
+            }}
+            className={`px-4 py-2 rounded-lg mr-2 ${getSecondaryThemeClasses()} transition duration-200`}
+          >
+            Thử lại
+          </button>
+          <button
+            onClick={() => {
+              setMessage("");
+              navigate("/login", { replace: true });
+            }}
+            className={`px-4 py-2 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition duration-200`}
+          >
+            Quay lại trang đăng nhập
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <ErrorBoundary>
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <LoginPage
-                setUser={setUser}
-                message={message}
-                setMessage={setMessage}
-              />
-            }
-          />
-          <Route
-            path="/home"
-            element={<HomePage user={user} setUser={setUser} />}
-          />
-          <Route
-            path="/reset-password/:token"
-            element={<ResetPasswordPage setMessage={setMessage} />}
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+    <div className="relative min-h-screen">
+      {showColorPicker && (
+        <ColorPicker
+          themeType={showColorPicker}
+          onColorChange={(preset) => {
+            applyPreset(showColorPicker, preset.name);
+            changeMode(showColorPicker, preset.name);
+          }}
+          onClose={() => setShowColorPicker(null)}
+        />
+      )}
+
+      <div className="relative min-h-screen">
+        <ErrorBoundary>
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <div className="relative w-full min-h-screen flex flex-col items-center justify-center transition-all duration-500 ease-in-out">
+                  <div
+                    className={`absolute top-0 left-0 w-full h-full z-1 transition-all duration-500 ease-in-out ${getBackgroundClasses()}`}
+                  ></div>
+                  <div className="absolute top-0 left-0 w-full h-full z-0">
+                    <Ballpit
+                      count={150}
+                      gravity={0.05}
+                      friction={0.995}
+                      wallBounce={0.98}
+                      followCursor={true}
+                      minSize={0.2}
+                      maxSize={0.8}
+                      emissive0={0xffffff}
+                      darkMode={theme === "dark"}
+                      colors={
+                        theme === "light"
+                          ? lightColors.background === "#F9FAFB"
+                            ? [
+                                "#FF6B6B",
+                                "#4ECDC4",
+                                "#45B7D1",
+                                "#96CEB4",
+                                "#FFE66D",
+                              ]
+                            : lightColors.background === "#FDF7E4"
+                            ? [
+                                "#FF9F43",
+                                "#EE6352",
+                                "#59A5D8",
+                                "#84D2F6",
+                                "#91E4E0",
+                              ]
+                            : lightColors.background === "#E0F2FE"
+                            ? [
+                                "#48BB78",
+                                "#ECC94B",
+                                "#F56565",
+                                "#9F7AEA",
+                                "#4299E1",
+                              ]
+                            : lightColors.background === "#FFE4E6"
+                            ? [
+                                "#ED64A6",
+                                "#F687B3",
+                                "#B794F4",
+                                "#FBD38D",
+                                "#68D391",
+                              ]
+                            : lightColors.background === "#ECFDF5"
+                            ? [
+                                "#38A169",
+                                "#319795",
+                                "#D69E2E",
+                                "#E53E3E",
+                                "#805AD5",
+                              ]
+                            : lightColors.background === "#F3E8FF"
+                            ? [
+                                "#A855F7",
+                                "#D8B4FE",
+                                "#8B5CF6",
+                                "#E9D5FF",
+                                "#C084FC",
+                              ]
+                            : lightColors.background === "#FFEDD5"
+                            ? [
+                                "#F97316",
+                                "#FDBA74",
+                                "#EA580C",
+                                "#FFEDD5",
+                                "#DC2626",
+                              ]
+                            : lightColors.background === "#E6FFFA"
+                            ? [
+                                "#14B8A6",
+                                "#99F6E4",
+                                "#0D9488",
+                                "#5EEAD4",
+                                "#2DD4BF",
+                              ]
+                            : lightColors.background === "#FFEBE6"
+                            ? [
+                                "#F472B6",
+                                "#F9A8D4",
+                                "#EC4899",
+                                "#FDA4AF",
+                                "#DB2777",
+                              ]
+                            : lightColors.background === "#E0F7FA"
+                            ? [
+                                "#06B6D4",
+                                "#67E8F9",
+                                "#0E7490",
+                                "#22D3EE",
+                                "#155E75",
+                              ]
+                            : [
+                                "#FF6B6B",
+                                "#4ECDC4",
+                                "#45B7D1",
+                                "#96CEB4",
+                                "#FFE66D",
+                              ]
+                          : darkColors.background === "#1F2937"
+                          ? [
+                              "#A78BFA",
+                              "#F472B6",
+                              "#4ADE80",
+                              "#60A5FA",
+                              "#FBBF24",
+                            ]
+                          : darkColors.background === "#0F172A"
+                          ? [
+                              "#6366F1",
+                              "#EC4899",
+                              "#10B981",
+                              "#F59E0B",
+                              "#7C3AED",
+                            ]
+                          : darkColors.background === "#2D1B4E"
+                          ? [
+                              "#8B5CF6",
+                              "#EC4899",
+                              "#34D399",
+                              "#FBBF24",
+                              "#60A5FA",
+                            ]
+                          : darkColors.background === "#112D4E"
+                          ? [
+                              "#3B82F6",
+                              "#F472B6",
+                              "#4ADE80",
+                              "#F59E0B",
+                              "#A78BFA",
+                            ]
+                          : darkColors.background === "#2F3640"
+                          ? [
+                              "#0EA5E9",
+                              "#F472B6",
+                              "#38BDF8",
+                              "#FBBF24",
+                              "#60A5FA",
+                            ]
+                          : darkColors.background === "#1E1B4B"
+                          ? [
+                              "#6366F1",
+                              "#A5B4FC",
+                              "#4F46E5",
+                              "#E0E7FF",
+                              "#818CF8",
+                            ]
+                          : darkColors.background === "#2D1616"
+                          ? [
+                              "#EF4444",
+                              "#FCA5A5",
+                              "#DC2626",
+                              "#FEE2E2",
+                              "#F87171",
+                            ]
+                          : darkColors.background === "#1A2E2A"
+                          ? [
+                              "#10B981",
+                              "#6EE7B7",
+                              "#059669",
+                              "#D1FAE5",
+                              "#34D399",
+                            ]
+                          : darkColors.background === "#2C1A4A"
+                          ? [
+                              "#A855F7",
+                              "#D946EF",
+                              "#9333EA",
+                              "#E9D5FF",
+                              "#C084FC",
+                            ]
+                          : darkColors.background === "#1E293B"
+                          ? [
+                              "#0EA5E9",
+                              "#38BDF8",
+                              "#0284C7",
+                              "#E0F7FA",
+                              "#7DD3FC",
+                            ]
+                          : [
+                              "#A78BFA",
+                              "#F472B6",
+                              "#4ADE80",
+                              "#60A5FA",
+                              "#FBBF24",
+                            ]
+                      }
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        opacity: theme === "dark" ? 0.6 : 0.8,
+                      }}
+                    />
+                    {/* Di chuyển nút "Chọn chế độ giao diện" vào đây để nổi trên Ballpit */}
+                    <div className="fixed top-4 right-4 z-20">
+                      <button
+                        onClick={() => setShowModeMenu(!showModeMenu)}
+                        className={`flex items-center px-4 py-2 rounded-lg ${getThemeToggleClasses()} transition duration-200 shadow-md hover:shadow-lg`}
+                      >
+                        <span className="mr-2">Chọn chế độ giao diện</span>
+                        {theme === "light" ? (
+                          <SunIcon className="h-5 w-5" />
+                        ) : theme === "dark" ? (
+                          <MoonIcon className="h-5 w-5" />
+                        ) : (
+                          <ClockIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                      {showModeMenu && (
+                        <div
+                          className="absolute top-12 right-0 shadow-xl rounded-lg z-20 transform transition-all duration-200 ease-in-out scale-100 backdrop-blur-md bg-opacity-80"
+                          style={{
+                            backgroundColor: "transparent",
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            backdropFilter: "blur(10px)",
+                          }}
+                        >
+                          <button
+                            onClick={() => handleModeSelect("light")}
+                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
+                            style={{ color: getTextStyles().color }}
+                          >
+                            <SunIcon className="h-5 w-5 mr-2 text-yellow-500" />
+                            Sáng
+                          </button>
+                          <button
+                            onClick={() => handleModeSelect("dark")}
+                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
+                            style={{ color: getTextStyles().color }}
+                          >
+                            <MoonIcon className="h-5 w-5 mr-2 text-blue-500" />
+                            Tối
+                          </button>
+                          <button
+                            onClick={() => handleModeSelect("auto")}
+                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
+                            style={{ color: getTextStyles().color }}
+                          >
+                            <ClockIcon className="h-5 w-5 mr-2 text-green-500" />
+                            Tự động
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="relative z-10">
+                    <LoginPage
+                      setUser={setUser}
+                      message={message}
+                      setMessage={setMessage}
+                    />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/home"
+              element={
+                user ? (
+                  <HomePage
+                    user={user}
+                    setUser={setUser}
+                    message={message}
+                    setMessage={setMessage}
+                  />
+                ) : (
+                  <div
+                    className={`flex items-center justify-center min-h-screen ${getBackgroundClasses()} ${getThemeClasses()}`}
+                  >
+                    <div className="text-center">
+                      <h2 className="text-2xl font-bold mb-4">
+                        Bạn cần đăng nhập
+                      </h2>
+                      <button
+                        onClick={() => navigate("/login", { replace: true })}
+                        className={`px-4 py-2 rounded-lg ${getSecondaryThemeClasses()} transition duration-200`}
+                      >
+                        Đăng nhập
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+            />
+            <Route
+              path="/reset-password/:token"
+              element={<ResetPasswordPage setMessage={setMessage} />}
+            />
+            <Route
+              path="*"
+              element={
+                <div
+                  className={`flex items-center justify-center min-h-screen ${getBackgroundClasses()} ${getThemeClasses()}`}
+                >
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">
+                      Trang không tồn tại
+                    </h2>
+                    <button
+                      onClick={() => navigate("/login", { replace: true })}
+                      className={`px-4 py-2 rounded-lg ${getSecondaryThemeClasses()} transition duration-200`}
+                    >
+                      Quay lại trang đăng nhập
+                    </button>
+                  </div>
+                </div>
+              }
+            />
+          </Routes>
+        </ErrorBoundary>
       </div>
-    </ErrorBoundary>
+    </div>
+  );
+};
+
+const App = () => {
+  const [message, setMessage] = useState("");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  return (
+    <ThemeProvider>
+      <AppContent
+        user={user}
+        setUser={setUser}
+        message={message}
+        setMessage={setMessage}
+        loading={loading}
+        setLoading={setLoading}
+      />
+    </ThemeProvider>
   );
 };
 

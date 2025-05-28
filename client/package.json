@@ -11,10 +11,12 @@
     "axios": "^1.9.0",
     "js-cookie": "^3.0.5",
     "react": "^18.2.0",
+    "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
     "react-google-recaptcha": "^3.1.0",
     "react-router-dom": "^7.6.0",
     "react-scripts": "^5.0.1",
+    "three": "^0.176.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -42,6 +44,9 @@
     ]
   },
   "devDependencies": {
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "autoprefixer": "^10.4.21",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7"
   }
 }

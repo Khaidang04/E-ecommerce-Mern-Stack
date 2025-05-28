@@ -1,68 +1,172 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Background classes for themes */
+.bg-bright-white {
+  background-color: #f9fafb;
+  transition: background-color 0.5s ease-in-out;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+.bg-soft-cream {
+  background-color: #fdf7e4;
+  transition: background-color 0.5s ease-in-out;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+.bg-cool-blue {
+  background-color: #e0f2fe;
+  transition: background-color 0.5s ease-in-out;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.bg-rose-pink {
+  background-color: #ffe4e6;
+  transition: background-color 0.5s ease-in-out;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+.bg-emerald-green {
+  background-color: #ecfdf5;
+  transition: background-color 0.5s ease-in-out;
 }
+
+.bg-lavender-mist {
+  background-color: #f3e8ff;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-sunset-glow {
+  background-color: #ffedd5;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-mint-breeze {
+  background-color: #e6fffa;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-peach-blossom {
+  background-color: #ffebe6;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-sky-serenity {
+  background-color: #e0f7fa;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-deep-night {
+  background-color: #1f2937;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-midnight-blue {
+  background-color: #0f172a;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-twilight-purple {
+  background-color: #2d1b4e;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-ocean-night {
+  background-color: #112d4e;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-cosmic-gray {
+  background-color: #2f3640;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-starry-indigo {
+  background-color: #1e1b4b;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-crimson-dusk {
+  background-color: #2d1616;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-forest-shadow {
+  background-color: #1a2e2a;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-amethyst-night {
+  background-color: #2c1a4a;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-slate-abyss {
+  background-color: #1e293b;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.bg-afternoon {
+  background-color: #fff7e6;
+  transition: background-color 0.5s ease-in-out;
+}
+
+/* Animations */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes slide-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.5s ease-out forwards;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Input and button transitions */
+input:focus,
+input:hover,
 button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: all 0.3s ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Text styles */
+.text-afternoon-text {
+  color: #4a4a4a;
 }
