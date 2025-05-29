@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useContext,
+  useRef,
+} from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import LoginPage from "./components/LoginPage";
@@ -8,12 +14,20 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ColorPicker from "./components/ColorPicker";
 import Ballpit from "./components/Ballpit";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
-import { SunIcon, MoonIcon, ClockIcon } from "@heroicons/react/24/outline";
+import {
+  SunIcon,
+  MoonIcon,
+  ClockIcon,
+  LanguageIcon,
+} from "@heroicons/react/24/outline";
 
 // Configure Axios defaults
 axios.defaults.baseURL = "http://localhost:4000/api/v1";
 axios.defaults.withCredentials = true;
 axios.defaults.timeout = 300000;
+
+// Supported languages to validate against
+const supportedLanguages = ["vi", "en", "es", "fr", "de", "ja"];
 
 const AppContent = ({
   user,
@@ -25,9 +39,49 @@ const AppContent = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, changeMode, applyPreset, lightColors, darkColors } = useContext(ThemeContext);
+  const { theme, changeMode, applyPreset, lightColors, darkColors } =
+    useContext(ThemeContext);
   const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(null);
+  const [language, setLanguage] = useState(() => {
+    const savedLang = localStorage.getItem("language");
+    return supportedLanguages.includes(savedLang) ? savedLang : "vi";
+  });
+
+  // Refs for the dropdowns to detect outside clicks
+  const modeMenuRef = useRef(null);
+  const languageMenuRef = useRef(null);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(event.target)) {
+        setShowModeMenu(false);
+      }
+      if (
+        languageMenuRef.current &&
+        !languageMenuRef.current.contains(event.target)
+      ) {
+        setShowLanguageMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Persist language selection to localStorage
+  useEffect(() => {
+    if (supportedLanguages.includes(language)) {
+      localStorage.setItem("language", language);
+    } else {
+      setLanguage("vi");
+      localStorage.setItem("language", "vi");
+    }
+  }, [language]);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -68,7 +122,9 @@ const AppContent = ({
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get("error");
 
-    const isAuthPage = location.pathname === "/login" || location.pathname.startsWith("/reset-password/");
+    const isAuthPage =
+      location.pathname === "/login" ||
+      location.pathname.startsWith("/reset-password/");
     if (isAuthPage) {
       setLoading(false);
       return;
@@ -147,10 +203,10 @@ const AppContent = ({
 
   const getThemeToggleClasses = () => {
     if (theme === "light")
-      return "bg-blue-600 text-white hover:bg-blue-700 shadow-lg";
+      return "bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500 shadow-lg";
     if (theme === "dark")
-      return "bg-gray-700 text-white hover:bg-gray-600 backdrop-blur-md bg-opacity-80 shadow-lg";
-    return "bg-yellow-700 text-white hover:bg-yellow-800 backdrop-blur-md bg-opacity-80 shadow-lg";
+      return "bg-gradient-to-r from-gray-700 to-gray-500 text-white hover:from-gray-600 hover:to-gray-400 backdrop-blur-md bg-opacity-80 shadow-lg";
+    return "bg-gradient-to-r from-yellow-700 to-yellow-500 text-white hover:from-yellow-800 hover:to-yellow-600 backdrop-blur-md bg-opacity-80 shadow-lg";
   };
 
   const getTextStyles = () => {
@@ -168,6 +224,11 @@ const AppContent = ({
     setShowModeMenu(false);
   };
 
+  const handleLanguageSelect = (lang) => {
+    setLanguage(lang);
+    setShowLanguageMenu(false);
+  };
+
   if (loading) {
     return (
       <div
@@ -181,7 +242,12 @@ const AppContent = ({
     );
   }
 
-  if (message && message.includes("hết hạn") && !location.pathname.startsWith("/login") && !location.pathname.startsWith("/reset-password/")) {
+  if (
+    message &&
+    message.includes("hết hạn") &&
+    !location.pathname.startsWith("/login") &&
+    !location.pathname.startsWith("/reset-password/")
+  ) {
     return (
       <div
         className={`flex items-center justify-center min-h-screen ${getBackgroundClasses()} ${getThemeClasses()}`}
@@ -237,7 +303,7 @@ const AppContent = ({
                   ></div>
                   <div className="absolute top-0 left-0 w-full h-full z-0">
                     <Ballpit
-                      count={150}
+                      count={200}
                       gravity={0.05}
                       friction={0.995}
                       wallBounce={0.98}
@@ -429,56 +495,136 @@ const AppContent = ({
                         opacity: theme === "dark" ? 0.6 : 0.8,
                       }}
                     />
-                    {/* Di chuyển nút "Chọn chế độ giao diện" vào đây để nổi trên Ballpit */}
-                    <div className="fixed top-4 right-4 z-20">
-                      <button
-                        onClick={() => setShowModeMenu(!showModeMenu)}
-                        className={`flex items-center px-4 py-2 rounded-lg ${getThemeToggleClasses()} transition duration-200 shadow-md hover:shadow-lg`}
-                      >
-                        <span className="mr-2">Chọn chế độ giao diện</span>
-                        {theme === "light" ? (
-                          <SunIcon className="h-5 w-5" />
-                        ) : theme === "dark" ? (
-                          <MoonIcon className="h-5 w-5" />
-                        ) : (
-                          <ClockIcon className="h-5 w-5" />
-                        )}
-                      </button>
-                      {showModeMenu && (
-                        <div
-                          className="absolute top-12 right-0 shadow-xl rounded-lg z-20 transform transition-all duration-200 ease-in-out scale-100 backdrop-blur-md bg-opacity-80"
-                          style={{
-                            backgroundColor: "transparent",
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                            backdropFilter: "blur(10px)",
-                          }}
+                    {/* Theme and Language Toggle Buttons */}
+                    <div className="fixed top-4 right-4 z-20 flex gap-2">
+                      {/* Language Toggle */}
+                      <div ref={languageMenuRef} className="relative">
+                        <button
+                          onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                          className={`flex items-center px-3 py-1 rounded-lg font-semibold text-sm animate-pulse ${getThemeToggleClasses()} transition duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/50`}
                         >
-                          <button
-                            onClick={() => handleModeSelect("light")}
-                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
-                            style={{ color: getTextStyles().color }}
+                          <span className="mr-2">
+                            {language === "vi"
+                              ? "Tiếng Việt"
+                              : language === "en"
+                              ? "English"
+                              : language === "es"
+                              ? "Español"
+                              : language === "fr"
+                              ? "Français"
+                              : language === "de"
+                              ? "Deutsch"
+                              : "日本語"}
+                          </span>
+                          <LanguageIcon className="h-4 w-4" />
+                        </button>
+                        {showLanguageMenu && (
+                          <div
+                            className="absolute top-10 right-0 shadow-xl rounded-lg z-20 transform transition-all duration-300 ease-in-out scale-100 backdrop-blur-lg bg-opacity-90 border border-white/30"
+                            style={{
+                              backgroundColor:
+                                theme === "light"
+                                  ? "rgba(255, 255, 255, 0.95)"
+                                  : "rgba(55, 65, 81, 0.95)",
+                            }}
                           >
-                            <SunIcon className="h-5 w-5 mr-2 text-yellow-500" />
-                            Sáng
-                          </button>
-                          <button
-                            onClick={() => handleModeSelect("dark")}
-                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
-                            style={{ color: getTextStyles().color }}
+                            <button
+                              onClick={() => handleLanguageSelect("vi")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>Tiếng Việt</span>
+                            </button>
+                            <button
+                              onClick={() => handleLanguageSelect("en")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>English</span>
+                            </button>
+                            <button
+                              onClick={() => handleLanguageSelect("es")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>Español</span>
+                            </button>
+                            <button
+                              onClick={() => handleLanguageSelect("fr")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>Français</span>
+                            </button>
+                            <button
+                              onClick={() => handleLanguageSelect("de")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>Deutsch</span>
+                            </button>
+                            <button
+                              onClick={() => handleLanguageSelect("ja")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <span>日本語</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Theme Toggle */}
+                      <div ref={modeMenuRef} className="relative">
+                        <button
+                          onClick={() => setShowModeMenu(!showModeMenu)}
+                          className={`flex items-center px-3 py-1 rounded-lg font-semibold text-sm animate-pulse ${getThemeToggleClasses()} transition duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/50`}
+                        >
+                          <span className="mr-2">Chọn chế độ giao diện</span>
+                          {theme === "light" ? (
+                            <SunIcon className="h-4 w-4" />
+                          ) : theme === "dark" ? (
+                            <MoonIcon className="h-4 w-4" />
+                          ) : (
+                            <ClockIcon className="h-4 w-4" />
+                          )}
+                        </button>
+                        {showModeMenu && (
+                          <div
+                            className="absolute top-10 right-0 shadow-xl rounded-lg z-20 transform transition-all duration-300 ease-in-out scale-100 backdrop-blur-lg bg-opacity-90 border border-white/30"
+                            style={{
+                              backgroundColor:
+                                theme === "light"
+                                  ? "rgba(255, 255, 255, 0.95)"
+                                  : "rgba(55, 65, 81, 0.95)",
+                            }}
                           >
-                            <MoonIcon className="h-5 w-5 mr-2 text-blue-500" />
-                            Tối
-                          </button>
-                          <button
-                            onClick={() => handleModeSelect("auto")}
-                            className="flex items-center w-full text-left px-4 py-2 hover:bg-opacity-20 hover:bg-gray-500 transition duration-150"
-                            style={{ color: getTextStyles().color }}
-                          >
-                            <ClockIcon className="h-5 w-5 mr-2 text-green-500" />
-                            Tự động
-                          </button>
-                        </div>
-                      )}
+                            <button
+                              onClick={() => handleModeSelect("light")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <SunIcon className="h-4 w-4 mr-2 text-yellow-500" />
+                              Sáng
+                            </button>
+                            <button
+                              onClick={() => handleModeSelect("dark")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <MoonIcon className="h-4 w-4 mr-2 text-blue-500" />
+                              Tối
+                            </button>
+                            <button
+                              onClick={() => handleModeSelect("auto")}
+                              className="flex items-center w-full text-left px-3 py-1 hover:bg-opacity-20 hover:bg-gray-300 transition duration-200 text-sm font-medium"
+                              style={{ color: getTextStyles().color }}
+                            >
+                              <ClockIcon className="h-4 w-4 mr-2 text-green-500" />
+                              Tự động
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="relative z-10">
@@ -486,6 +632,8 @@ const AppContent = ({
                       setUser={setUser}
                       message={message}
                       setMessage={setMessage}
+                      language={language}
+                      setLanguage={setLanguage}
                     />
                   </div>
                 </div>

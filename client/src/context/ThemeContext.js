@@ -53,7 +53,6 @@ const lightPresets = [
       buttonSecondary: "#A7F3D0",
     },
   },
-  // New Light Presets
   {
     name: "Lavender Mist",
     colors: {
@@ -157,7 +156,6 @@ const darkPresets = [
       buttonSecondary: "#F43F5E",
     },
   },
-  // New Dark Presets
   {
     name: "Starry Indigo",
     colors: {
@@ -211,14 +209,27 @@ const darkPresets = [
 ];
 
 export const ThemeProvider = ({ children }) => {
-  const [mode, setMode] = useState("auto");
-  const [theme, setTheme] = useState("light");
-  const [lightColors, setLightColors] = useState(lightPresets[0].colors);
-  const [darkColors, setDarkColors] = useState(darkPresets[0].colors);
-  const [isManualMode, setIsManualMode] = useState(false);
+  // Khởi tạo trạng thái từ localStorage hoặc giá trị mặc định
+  const [mode, setMode] = useState(() => {
+    return localStorage.getItem("themeMode") || "auto";
+  });
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("theme") || "light";
+  });
+  const [lightColors, setLightColors] = useState(() => {
+    const savedColors = localStorage.getItem("lightColors");
+    return savedColors ? JSON.parse(savedColors) : lightPresets[0].colors;
+  });
+  const [darkColors, setDarkColors] = useState(() => {
+    const savedColors = localStorage.getItem("darkColors");
+    return savedColors ? JSON.parse(savedColors) : darkPresets[0].colors;
+  });
+  const [isManualMode, setIsManualMode] = useState(() => {
+    return localStorage.getItem("isManualMode") === "true";
+  });
 
   const updateThemeBasedOnTime = useCallback(() => {
-    if (isManualMode) return; // Skip time-based updates if manual mode is active
+    if (isManualMode) return;
     const currentHour = new Date().getHours();
     let newTheme = "light";
     let preset;
@@ -237,9 +248,12 @@ export const ThemeProvider = ({ children }) => {
     setTheme(newTheme);
     if (newTheme === "light" && preset) {
       setLightColors(preset.colors);
+      localStorage.setItem("lightColors", JSON.stringify(preset.colors));
     } else if (newTheme === "dark" && preset) {
       setDarkColors(preset.colors);
+      localStorage.setItem("darkColors", JSON.stringify(preset.colors));
     }
+    localStorage.setItem("theme", newTheme);
   }, [isManualMode]);
 
   useEffect(() => {
@@ -247,21 +261,31 @@ export const ThemeProvider = ({ children }) => {
       setIsManualMode(false);
       updateThemeBasedOnTime();
       const interval = setInterval(updateThemeBasedOnTime, 5 * 60 * 1000);
+      localStorage.setItem("isManualMode", "false");
       return () => clearInterval(interval);
     }
-  }, [mode, isManualMode, updateThemeBasedOnTime]);
+  }, [mode, updateThemeBasedOnTime]);
 
   const changeMode = (newMode, selectedPreset = null) => {
     setMode(newMode);
+    localStorage.setItem("themeMode", newMode);
+
     if (newMode !== "auto") {
       setIsManualMode(true);
       setTheme(newMode);
-      // Only reset colors if no preset is provided
+      localStorage.setItem("theme", newMode);
+      localStorage.setItem("isManualMode", "true");
+
+      // Chỉ reset màu nếu không có preset được chọn
       if (!selectedPreset) {
         if (newMode === "light") {
-          setLightColors(lightPresets[0].colors);
+          const defaultLight = lightPresets[0].colors;
+          setLightColors(defaultLight);
+          localStorage.setItem("lightColors", JSON.stringify(defaultLight));
         } else if (newMode === "dark") {
-          setDarkColors(darkPresets[0].colors);
+          const defaultDark = darkPresets[0].colors;
+          setDarkColors(defaultDark);
+          localStorage.setItem("darkColors", JSON.stringify(defaultDark));
         }
       }
     } else {
@@ -275,13 +299,17 @@ export const ThemeProvider = ({ children }) => {
       const preset = lightPresets.find((p) => p.name === presetName);
       if (preset) {
         setLightColors(preset.colors);
-        setTheme("light"); // Ensure theme matches the preset type
+        setTheme("light");
+        localStorage.setItem("lightColors", JSON.stringify(preset.colors));
+        localStorage.setItem("theme", "light");
       }
     } else if (themeType === "dark") {
       const preset = darkPresets.find((p) => p.name === presetName);
       if (preset) {
         setDarkColors(preset.colors);
-        setTheme("dark"); // Ensure theme matches the preset type
+        setTheme("dark");
+        localStorage.setItem("darkColors", JSON.stringify(preset.colors));
+        localStorage.setItem("theme", "dark");
       }
     }
   };

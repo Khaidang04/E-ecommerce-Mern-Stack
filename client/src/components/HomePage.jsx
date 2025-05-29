@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useContext, useCallback } from "react"; // Thêm useCallback
+import { useEffect, useState, useContext, useCallback } from "react";
 import axios from "axios";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -8,25 +8,26 @@ const HomePage = ({ user, setUser, message, setMessage }) => {
   const { theme, lightColors, darkColors } = useContext(ThemeContext);
   const [showWelcome, setShowWelcome] = useState(true);
   const [lastActivity, setLastActivity] = useState(Date.now());
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Thêm trạng thái
 
-  // Theo dõi hoạt động người dùng
   const handleUserActivity = () => {
     setLastActivity(Date.now());
   };
 
-  // Bọc handleLogout trong useCallback để tránh thay đổi không cần thiết
   const handleLogout = useCallback(async () => {
+    setIsLoggingOut(true); // Đặt trạng thái đăng xuất
     try {
       await axios.post("/auth/logout");
       setUser(null);
       document.cookie =
         "userInfo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
       setMessage("Đã đăng xuất thành công");
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (error) {
       setMessage("Đã có lỗi khi đăng xuất");
+      setIsLoggingOut(false); // Reset trạng thái nếu có lỗi
     }
-  }, [setUser, setMessage, navigate]); // Thêm dependencies của handleLogout
+  }, [setUser, setMessage, navigate]);
 
   useEffect(() => {
     const events = ["mousemove", "keydown", "scroll", "click"];
@@ -46,7 +47,7 @@ const HomePage = ({ user, setUser, message, setMessage }) => {
       );
       clearInterval(timer);
     };
-  }, [lastActivity, handleLogout]); // Thêm handleLogout vào dependency array
+  }, [lastActivity, handleLogout]);
 
   useEffect(() => {
     if (showWelcome) {
@@ -99,6 +100,11 @@ const HomePage = ({ user, setUser, message, setMessage }) => {
       return { color: "#059669" };
     }
   };
+
+  // Nếu đang đăng xuất, không render gì cả
+  if (isLoggingOut) {
+    return null;
+  }
 
   if (!user) {
     return (
